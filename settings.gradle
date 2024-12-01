@@ -1,0 +1,4 @@
+rootProject.name = 'customIceStorm'
+include 'common'
+include 'publisher'
+include 'subscriber'

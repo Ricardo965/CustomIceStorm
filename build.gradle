@@ -1,0 +1,84 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'com.zeroc.gradle.ice-builder.slice' version '1.5.0' apply false
+}
+
+// Configuración común para TODOS los proyectos, incluyendo el root y los subproyectos
+allprojects {
+    // Aplicamos el plugin de Java a todos los proyectos
+    apply plugin: 'java'
+    
+    // Establecemos la versión de Java para todos los módulos
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// Configuración específica para módulos que necesitan Ice
+configure(subprojects.findAll { it.name != 'common' }) {
+    apply plugin: 'com.zeroc.gradle.ice-builder.slice'
+
+    // Configuración del compilador Slice
+    slice {
+        java {
+            files = [file("${rootProject.projectDir}/common/src/main/slice/Clock.ice")]
+            include = [project.projectDir.toString() + "/src/main/slice"]
+        }
+    }
+
+    dependencies {
+        implementation 'com.zeroc:ice:3.7.10'
+        implementation 'com.zeroc:icestorm:3.7.10'
+        implementation project(':common')
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['src/main/java', 'build/generated-src']
+            }
+        }
+    }
+}
+
+// Configuración específica para el módulo común
+project(':common') {
+    dependencies {
+        implementation 'com.zeroc:ice:3.7.10'
+    }
+}
+
+// Configuración específica para el publisher
+project(':publisher') {
+    jar {
+        manifest {
+            attributes(
+                'Main-Class': 'Publisher',
+                'Class-Path': configurations.runtimeClasspath.resolve().collect { it.toURI() }.join(' ')
+            )
+        }
+    }
+}
+
+// Configuración específica para el subscriber
+project(':subscriber') {
+    jar {
+        manifest {
+            attributes(
+                'Main-Class': 'Subscriber',
+                'Class-Path': configurations.runtimeClasspath.resolve().collect { it.toURI() }.join(' ')
+            )
+        }
+    }
+}
